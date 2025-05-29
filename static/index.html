@@ -201,9 +201,17 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     })
-    .then(response => {
+    .then(async response => {
       if (!response.ok) {
-        return response.json().then(data => { throw new Error(data.error || 'Unknown error') });
+        // Try to extract error message JSON if any
+        let errorMsg = 'Unknown error occurred';
+        try {
+          const errJson = await response.json();
+          if (errJson && errJson.error) errorMsg = errJson.error;
+        } catch(e) {
+          // ignored
+        }
+        throw new Error(errorMsg);
       }
       return response.json();
     })
