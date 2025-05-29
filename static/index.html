@@ -1,18 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <title>Zomato Menu Scraper</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Zomato Menu Scraper</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f9fafb;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgb(0 0 0 / 0.1);
+  }
+  h1 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 20px;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 6px;
+    border: 1.5px solid #cbd5e0;
+    font-size: 16px;
+    outline-offset: 2px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+  }
+  button {
+    width: 100%;
+    background: #27ae60;
+    color: white;
+    padding: 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: #219150;
+  }
+  #result {
+    margin-top: 28px;
+  }
+  .error {
+    color: #e74c3c;
+    font-weight: 600;
+    text-align: center;
+  }
+  .loading {
+    text-align: center;
+    font-style: italic;
+    color: #999;
+    margin: 20px 0;
+  }
+  ul.menu-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  ul.menu-list > li {
+    border-bottom: 1px solid #e1e4e8;
+    padding: 14px 0;
+  }
+  .item-name {
+    font-weight: 700;
+    font-size: 18px;
+    color: #2c3e50;
+  }
+  .price {
+    font-weight: 600;
+    color: #16a085;
+    float: right;
+    font-size: 16px;
+  }
+  .item-details {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #555;
+  }
+  .category, .sub-category, .diet {
+    margin-right: 12px;
+    display: inline-block;
+  }
+  .label {
+    font-weight: 600;
+    color: #34495e;
+  }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>Zomato Menu Scraper</h1>
-        <input type="text" id="url" placeholder="Enter Zomato restaurant URL">
-        <button id="scrapeBtn">Scrape Menu</button>
-        <div id="result"></div>
-    </div>
-    <script src="script.js"></script>
+  <div class="container">
+    <h1>Zomato Menu Scraper</h1>
+    <input type="text" id="url" placeholder="Enter Zomato restaurant URL" />
+    <button id="scrapeBtn">Scrape Menu</button>
+    <div id="result"></div>
+  </div>
+
+<script>
+  const scrapeBtn = document.getElementById('scrapeBtn');
+  const urlInput = document.getElementById('url');
+  const resultDiv = document.getElementById('result');
+
+  function clearResult() {
+    resultDiv.innerHTML = '';
+  }
+
+  function showLoading() {
+    resultDiv.innerHTML = '<div class="loading">Scraping menu... please wait.</div>';
+  }
+
+  function showError(message) {
+    resultDiv.innerHTML = `<div class="error">${message}</div>`;
+  }
+
+  function renderMenu(items) {
+    if (!items || items.length === 0) {
+      showError('No menu items found.');
+      return;
+    }
+
+    const ul = document.createElement('ul');
+    ul.classList.add('menu-list');
+
+    items.forEach(item => {
+      const li = document.createElement('li');
+
+      // Name and Price row
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'item-name';
+      nameSpan.textContent = item.item_name;
+
+      const priceSpan = document.createElement('span');
+      priceSpan.className = 'price';
+      priceSpan.textContent = item.price || 'N/A';
+
+      li.appendChild(nameSpan);
+      li.appendChild(priceSpan);
+
+      // Details row
+      const detailsDiv = document.createElement('div');
+      detailsDiv.className = 'item-details';
+
+      if(item.category){
+        const catSpan = document.createElement('span');
+        catSpan.className = 'category';
+        catSpan.innerHTML = `<span class="label">Category:</span> ${item.category}`;
+        detailsDiv.appendChild(catSpan);
+      }
+      if(item.sub_category){
+        const subCatSpan = document.createElement('span');
+        subCatSpan.className = 'sub-category';
+        subCatSpan.innerHTML = `<span class="label">Sub-category:</span> ${item.sub_category}`;
+        detailsDiv.appendChild(subCatSpan);
+      }
+      if(item.dietary_slugs){
+        const dietSpan = document.createElement('span');
+        dietSpan.className = 'diet';
+        dietSpan.innerHTML = `<span class="label">Diet:</span> ${item.dietary_slugs || 'N/A'}`;
+        detailsDiv.appendChild(dietSpan);
+      }
+
+      if(item.desc){
+        const descP = document.createElement('p');
+        descP.style.marginTop = '8px';
+        descP.style.color = '#777';
+        descP.textContent = item.desc;
+        detailsDiv.appendChild(descP);
+      }
+
+      li.appendChild(detailsDiv);
+      ul.appendChild(li);
+    });
+
+    clearResult();
+    resultDiv.appendChild(ul);
+  }
+
+  scrapeBtn.addEventListener('click', () => {
+    const url = urlInput.value.trim();
+    if (!url) {
+      showError('Please enter a valid Zomato restaurant URL.');
+      return;
+    }
+    clearResult();
+    showLoading();
+
+    fetch('/get_menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => { throw new Error(data.error || 'Unknown error') });
+      }
+      return response.json();
+    })
+    .then(data => {
+      renderMenu(data);
+    })
+    .catch(err => {
+      showError('Error: ' + err.message);
+    });
+  });
+</script>
 </body>
 </html>
+
