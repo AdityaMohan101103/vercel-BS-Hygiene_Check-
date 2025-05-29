@@ -1,0 +1,13 @@
+{
+  "routes": [
+    {
+      "src": "/get_menu",
+      "methods": ["POST"],
+      "dest": "/app.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/static/index.html"
+    }
+  ]
+}
